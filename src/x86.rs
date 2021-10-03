@@ -37,7 +37,7 @@ pub fn is_inside_qemu() -> bool {
 }
 
 fn cpuid_supported() -> bool {
-    let mut diff = 0;
+    let mut diff: u32;
 
     unsafe {
         asm!(
