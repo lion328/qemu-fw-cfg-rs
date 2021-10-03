@@ -116,14 +116,16 @@ impl FwCfg {
         for _ in 0..count {
             self.read(&mut buf);
             let file = FwCfgFile::from_bytes(&buf);
+            let mut changed = false;
 
             for (name, ret) in entries.iter_mut() {
                 if file.name() == *name {
                     ret.replace(file.with_name(*name));
+                    changed = true;
                 }
             }
 
-            if entries.iter().all(|entry| entry.1.is_some()) {
+            if changed && entries.iter().all(|entry| entry.1.is_some()) {
                 return;
             }
         }
