@@ -36,37 +36,39 @@ pub fn is_inside_qemu() -> bool {
     false
 }
 
+#[cfg(target_arch = "x86_64")]
 fn cpuid_supported() -> bool {
-    let mut diff: u32;
+    let mut diff: u64;
 
     unsafe {
         asm!(
-            "pushfd",
-            "pushfd",
-            "xor dword [esp], {0}",
-            "popfd",
-            "pushfd",
-            "pop {1:e}",
-            "xor {1:e}, [esp]",
-            "popfd",
+            "pushfq",
+            "pushfq",
+            "xor qword ptr [rsp], {0}",
+            "popfq",
+            "pushfq",
+            "pop {1}",
+            "xor {1}, [rsp]",
+            "popfq",
             const EFLAGS_ID_MASK,
             out(reg) diff,
             options(preserves_flags),
         );
     }
 
-    diff & EFLAGS_ID_MASK != 0
+    (diff as u32) & EFLAGS_ID_MASK != 0
 }
 
+#[cfg(target_arch = "x86_64")]
 unsafe fn cpuid(leaf: u32) -> [u8; 12] {
     let mut buf = [0u8; 12];
     asm!(
-        "push ebx",
+        "push rbx",
         "cpuid",
-        "mov dword [{0}], ebx",
-        "mov dword [{0} + 1], edx",
-        "mov dword [{0} + 2], ecx",
-        "pop ebx",
+        "mov dword ptr [{0}], ebx",
+        "mov dword ptr [{0} + 1], edx",
+        "mov dword ptr [{0} + 2], ecx",
+        "pop rbx",
         in(reg) &mut buf,
         inout("eax") leaf => _,
         out("ecx") _,
