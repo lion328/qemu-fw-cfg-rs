@@ -18,65 +18,6 @@ const IO_PORT_SELECTOR: u16 = 0x510;
 const IO_PORT_DATA: u16 = 0x511;
 const IO_PORT_DMA: u16 = 0x514;
 
-const EFLAGS_ID_MASK: u32 = 0x00200000;
-const CPUID_QEMU_LEAF: u32 = 0x40000000;
-
-pub fn is_inside_qemu() -> bool {
-    if cpuid_supported() {
-        let s = unsafe {
-            cpuid(CPUID_QEMU_LEAF)
-        };
-        if &s == b"TCGTCGTCGTCG" || &s == b"KVMKVMKVM\0\0\0" {
-            return true;
-        }
-    }
-    
-    // TODO: check ACPI
-
-    false
-}
-
-#[cfg(target_arch = "x86_64")]
-fn cpuid_supported() -> bool {
-    let mut diff: u64;
-
-    unsafe {
-        asm!(
-            "pushfq",
-            "pushfq",
-            "xor qword ptr [rsp], {0}",
-            "popfq",
-            "pushfq",
-            "pop {1}",
-            "xor {1}, [rsp]",
-            "popfq",
-            const EFLAGS_ID_MASK,
-            out(reg) diff,
-            options(preserves_flags),
-        );
-    }
-
-    (diff as u32) & EFLAGS_ID_MASK != 0
-}
-
-#[cfg(target_arch = "x86_64")]
-unsafe fn cpuid(leaf: u32) -> [u8; 12] {
-    let mut buf = [0u8; 12];
-    asm!(
-        "push rbx",
-        "cpuid",
-        "mov dword ptr [{0}], ebx",
-        "mov dword ptr [{0} + 1], edx",
-        "mov dword ptr [{0} + 2], ecx",
-        "pop rbx",
-        in(reg) &mut buf,
-        inout("eax") leaf => _,
-        out("ecx") _,
-        out("edx") _,
-    );
-    buf
-}
-
 pub unsafe fn write_selector(key: u16) {
     out_u16(IO_PORT_SELECTOR, key);
 }

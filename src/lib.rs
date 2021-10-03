@@ -35,8 +35,8 @@ mod selector_keys {
 const SIGNATURE_DATA: &'static [u8] = b"QEMU";
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum FwCfgBuilderError {
-    CannotDetectQEMU,
     InvalidSignature,
 }
 
@@ -57,19 +57,9 @@ impl FwCfgBuilder {
         }
     }
 
-    /// Build [`FwCfg`] from a builder. This also detect if QEMU is used.
-    pub fn build(self) -> Result<FwCfg, FwCfgBuilderError> {
-        if !arch::is_inside_qemu() {
-            return Err(FwCfgBuilderError::CannotDetectQEMU);
-        }
-
-        unsafe {
-            self.build_unchecked()
-        }
-    }
-
-    /// Build [`FwCfg`] without checking the presence of QEMU before accessing any I/O ports.
-    pub unsafe fn build_unchecked(self) -> Result<FwCfg, FwCfgBuilderError> {
+    /// Build [`FwCfg`] from the builder. This is unsafe since there is no verification
+    /// that this running inside QEMU before accessing I/O ports.
+    pub unsafe fn build(self) -> Result<FwCfg, FwCfgBuilderError> {
         let mut signature = [0u8; SIGNATURE_DATA.len()];
         arch::write_selector(selector_keys::SIGNATURE);
         arch::read_data(&mut signature);
