@@ -21,6 +21,7 @@
 extern crate alloc;
 
 use core::{mem::size_of, str::from_utf8};
+use std::convert::TryInto;
 
 #[cfg_attr(any(target_arch = "x86", target_arch = "x86_64"), path = "x86.rs")]
 mod arch;
