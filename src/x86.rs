@@ -65,7 +65,7 @@ unsafe fn cpuid(leaf: u32) -> [u8; 12] {
         "cpuid",
         "mov dword [{0}], ebx",
         "mov dword [{0} + 1], edx",
-        "mov dword [{0} + 2], ebx",
+        "mov dword [{0} + 2], ecx",
         "pop ebx",
         in(reg) &mut buf,
         inout("eax") leaf => _,
