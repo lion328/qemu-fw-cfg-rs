@@ -14,15 +14,20 @@
    limitations under the License.
 */
 
-#![cfg_attr(not(feature = "alloc"), no_std)]
+#![no_std]
 #![feature(asm)]
 
 #[cfg(feature = "alloc")]
+#[macro_use]
 extern crate alloc;
+
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
 use core::{convert::TryInto, mem::size_of, str::from_utf8};
 
-#[cfg_attr(any(target_arch = "x86", target_arch = "x86_64"), path = "x86.rs")]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[path = "x86.rs"]
 mod arch;
 
 mod selector_keys {
@@ -121,6 +126,25 @@ impl FwCfg {
         }
     }
 
+    pub fn for_each<T: Fn(FwCfgFile) -> ()>(&self, f: T) {
+        self.select(selector_keys::DIR);
+
+        let count = {
+            let mut buf = [0u8; size_of::<u32>()];
+            self.read(&mut buf);
+            u32::from_be_bytes(buf)
+        };
+
+        let mut buf = [0u8; FW_CFG_FILE_SIZE];
+
+        for _ in 0..count {
+            self.read(&mut buf);
+            let file = FwCfgFile::from_bytes(&buf);
+            
+            f(file);
+        }
+    }
+
     pub fn find_file<'a>(&self, name: &'a str) -> Option<FwCfgFile<'a>> {
         let mut entries = [(name, None)];
         self.find_files(&mut entries);
@@ -179,10 +203,15 @@ impl<'a> FwCfgFile<'a> {
     }
 
     fn from_bytes(bytes: &'a [u8; FW_CFG_FILE_SIZE]) -> Self {
+        let name_bytes = &bytes[8..];
+        let name_len = name_bytes.iter()
+            .position(|b| *b == 0)
+            .unwrap_or_else(|| name_bytes.len());
+
         Self {
             size: u32::from_be_bytes(bytes[..=3].try_into().unwrap()) as usize,
             key: u16::from_be_bytes(bytes[4..=5].try_into().unwrap()),
-            name: from_utf8(&bytes[9..]).unwrap(),
+            name: from_utf8(&name_bytes[..name_len]).unwrap(),
         }
     }
 

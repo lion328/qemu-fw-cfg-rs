@@ -1,0 +1,9 @@
+[unstable]
+build-std = ["core", "compiler_builtins", "alloc"]
+
+[build]
+target = "i686-unknown-none.json"
+
+[target.i686-unknown-none]
+rustflags = ["-C", "link-args=-T tests/shared/i686/link.ld"]
+runner = "sh tests/runner.sh"
