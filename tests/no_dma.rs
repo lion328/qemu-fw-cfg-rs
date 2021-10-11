@@ -24,5 +24,5 @@ fn main() {
     fw_cfg.read_file_to_buffer(&file, &mut buffer);
     assert_eq!(INPUT, buffer);
 
-    assert!(fw_cfg.find_file("opt/not_found.txt").is_none())
+    assert!(fw_cfg.find_file("opt/not_found.txt").is_none());
 }

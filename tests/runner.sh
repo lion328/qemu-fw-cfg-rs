@@ -15,6 +15,6 @@ if [ "$ARCH" = "i686" ]; then
     status=$(($? >> 1))
 fi
 
-if [ $status > 0 ]; then
+if [ $status -gt 0 ]; then
     exit $status
 fi
