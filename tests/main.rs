@@ -5,7 +5,7 @@
 #![feature(asm)]
 #![feature(default_alloc_error_handler)]
 
-use qemu_fw_cfg::FwCfgBuilder;
+use qemu_fw_cfg::FwCfg;
 
 mod shared;
 
@@ -14,7 +14,7 @@ const INPUT: &'static [u8] = include_bytes!("input.txt");
 #[no_mangle]
 fn main() {
     let fw_cfg = unsafe {
-        FwCfgBuilder::new().with_prefer_dma(false).build().unwrap()
+        FwCfg::new().unwrap()
     };
 
     let file = fw_cfg.find_file("opt/input.txt").unwrap();
@@ -25,4 +25,6 @@ fn main() {
     assert_eq!(INPUT, buffer);
 
     assert!(fw_cfg.find_file("opt/not_found.txt").is_none());
+
+    assert!(fw_cfg.find_file("opt/567890123456789012345678901234567890123456789012345").is_some());
 }

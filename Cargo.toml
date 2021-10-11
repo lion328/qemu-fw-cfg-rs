@@ -11,5 +11,5 @@ alloc = []
 test = false
 
 [[test]]
-name = "no_dma"
+name = "main"
 harness = false

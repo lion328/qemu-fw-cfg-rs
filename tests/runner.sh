@@ -9,6 +9,7 @@ if [ "$ARCH" = "i686" ]; then
         -m 32M \
         -display none \
         -fw_cfg opt/input.txt,file=tests/input.txt \
+        -fw_cfg opt/567890123456789012345678901234567890123456789012345,file=tests/input.txt \
         -device isa-debug-exit \
         -serial stdio
 

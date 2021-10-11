@@ -4,7 +4,7 @@ mod arch;
 
 pub use arch::*;
 
-use core::{alloc::{GlobalAlloc, Layout}, cell::UnsafeCell, ops::Sub, panic::PanicInfo, ptr::null_mut, sync::atomic::{AtomicUsize, Ordering}};
+use core::{alloc::{GlobalAlloc, Layout}, cell::UnsafeCell, panic::PanicInfo, ptr::null_mut, sync::atomic::{AtomicUsize, Ordering}};
 
 #[macro_export]
 macro_rules! println {
@@ -28,7 +28,7 @@ fn panic(info: &PanicInfo) -> ! {
     exit(1)
 }
 
-const HEAP_SIZE: usize = 16 * 1024 * 1024;
+const HEAP_SIZE: usize = 1 * 1024 * 1024;
 
 #[global_allocator]
 static ALLOCATOR: LinearAllocator = LinearAllocator {

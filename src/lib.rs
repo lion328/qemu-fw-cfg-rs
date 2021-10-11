@@ -32,7 +32,6 @@ mod arch;
 
 mod selector_keys {
     pub const SIGNATURE: u16 = 0x0000;
-    pub const ID: u16 = 0x0001;
     pub const DIR: u16 = 0x0019;
 }
 
@@ -40,63 +39,27 @@ const SIGNATURE_DATA: &'static [u8] = b"QEMU";
 
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum FwCfgBuilderError {
+pub enum FwCfgError {
     InvalidSignature,
 }
 
-pub struct FwCfgBuilder {
-    prefer_dma: bool,
-}
+pub struct FwCfg(());
 
-impl FwCfgBuilder {
-    pub fn new() -> Self {
-        Self {
-            prefer_dma: true,
-        }
-    }
-
-    pub fn with_prefer_dma(self, preference: bool) -> Self {
-        Self {
-            prefer_dma: preference,
-        }
-    }
-
+impl FwCfg {
     /// Build [`FwCfg`] from the builder. This is unsafe since there is no verification
     /// that this running inside QEMU before accessing I/O ports.
-    pub unsafe fn build(self) -> Result<FwCfg, FwCfgBuilderError> {
+    pub unsafe fn new() -> Result<FwCfg, FwCfgError> {
         let mut signature = [0u8; SIGNATURE_DATA.len()];
         arch::write_selector(selector_keys::SIGNATURE);
         arch::read_data(&mut signature);
 
         if signature != SIGNATURE_DATA {
-            return Err(FwCfgBuilderError::InvalidSignature);
+            return Err(FwCfgError::InvalidSignature);
         }
 
-        let use_dma = if self.prefer_dma {
-            let id = {
-                let mut buf = [0u8; size_of::<u32>()];
-                arch::write_selector(selector_keys::ID);
-                arch::read_data(&mut buf);
-
-                u32::from_le_bytes(buf)
-            };
-
-            (id >> 1) & 1 == 1
-        } else {
-            false
-        };
-
-        Ok(FwCfg {
-            use_dma,
-        })
+        Ok(FwCfg(()))
     }
-}
 
-pub struct FwCfg {
-    use_dma: bool,
-}
-
-impl FwCfg {
     pub fn find_files<'a, 'b>(&self, entries: &'a mut [(&'b str, Option<FwCfgFile<'b>>)]) {
         self.select(selector_keys::DIR);
 
@@ -166,21 +129,13 @@ impl FwCfg {
 
     fn select(&self, key: u16) {
         unsafe {
-            if self.use_dma {
-                unimplemented!()
-            } else {
-                arch::write_selector(key);
-            }
+            arch::write_selector(key);
         }
     }
 
     fn read(&self, buffer: &mut [u8]) {
         unsafe {
-            if self.use_dma {
-                unimplemented!()
-            } else {
-                arch::read_data(buffer);
-            }
+            arch::read_data(buffer);
         }
     }
 }

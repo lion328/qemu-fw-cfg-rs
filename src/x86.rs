@@ -16,7 +16,6 @@
 
 const IO_PORT_SELECTOR: u16 = 0x510;
 const IO_PORT_DATA: u16 = 0x511;
-const IO_PORT_DMA: u16 = 0x514;
 
 pub unsafe fn write_selector(key: u16) {
     out_u16(IO_PORT_SELECTOR, key);
