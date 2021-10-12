@@ -1,4 +1,4 @@
-//! A Rust library for reading fw_cfg from QEMU
+//! A Rust library for reading fw_cfg from QEMU.
 //! 
 //! # Supported architectures
 //! 
@@ -51,7 +51,7 @@ pub enum FwCfgError {
     InvalidSignature,
 }
 
-/// A struct for accessing QEMU fw_cfg
+/// A struct for accessing QEMU fw_cfg.
 #[derive(Debug)]
 pub struct FwCfg(());
 
