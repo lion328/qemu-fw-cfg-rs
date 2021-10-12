@@ -1,5 +1,10 @@
 # qemu-fw-cfg-rs
 
+[![Crates.io](https://img.shields.io/crates/v/qemu-fw-cfg)](https://crates.io/crates/qemu-fw-cfg)
+[![License-MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE-MIT)
+[![License-Apache](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE-APACHE)
+[![docs.rs](https://img.shields.io/docsrs/qemu-fw-cfg)](https://docs.rs/qemu-fw-cfg)
+
 A Rust library for reading fw_cfg from QEMU.
 
 ## Usage
