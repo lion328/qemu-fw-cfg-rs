@@ -6,14 +6,14 @@ A Rust library for reading fw_cfg from QEMU.
 
 Add the following to your `Cargo.toml`:
 
-```yaml
+```toml
 [dependencies]
 qemu-fw-cfg = "0.1"
 ```
 
 To use `qemu-fw-cfg` without `alloc`, you can use this instead:
 
-```yaml
+```toml
 [dependencies]
 qemu-fw-cfg = { version = "0.1", default-features = false }
 ```
