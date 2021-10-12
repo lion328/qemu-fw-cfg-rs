@@ -1,18 +1,24 @@
-/* 
-   Copyright 2021 Waritnan Sookbuntherng
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*/
+//! A Rust library for reading fw_cfg from QEMU
+//! 
+//! # Supported architectures
+//! 
+//! As of today, this crate only supported x86 and x86_64. However, it is possible
+//! to add support for other platforms, such as ARM.
+//! 
+//! # Examples
+//! ```
+//! use qemu_fw_cfg::FwCfg;
+//! 
+//! // Verify that we are inside QEMU.
+//! if running_in_qemu() {
+//!     // Create a new `FwCfg` instance.
+//!     let fw_cfg = unsafe { FwCfg::new() };
+//!     // Retrieve information of a file.
+//!     let file = fw_cfg.find_file("etc/igd-opregion").unwrap();
+//!     // Read data from the file.
+//!     let data = fw_cfg.read_file(&file);
+//! }
+//! ```
 
 #![no_std]
 #![feature(asm)]
@@ -37,17 +43,24 @@ mod selector_keys {
 
 const SIGNATURE_DATA: &'static [u8] = b"QEMU";
 
+/// An enum type for [`FwCfg`] errors.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum FwCfgError {
+    /// Invalid signature returned from QEMU fw_cfg I/O port
     InvalidSignature,
 }
 
+/// A struct for accessing QEMU fw_cfg
+#[derive(Debug)]
 pub struct FwCfg(());
 
 impl FwCfg {
-    /// Build [`FwCfg`] from the builder. This is unsafe since there is no verification
-    /// that this running inside QEMU before accessing I/O ports.
+    /// Build `FwCfg` from the builder.
+    /// 
+    /// # Safety
+    /// This is unsafe since there is no verification that this running inside QEMU
+    /// before accessing I/O ports. Caller must verify this condition first.
     pub unsafe fn new() -> Result<FwCfg, FwCfgError> {
         let mut signature = [0u8; SIGNATURE_DATA.len()];
         arch::write_selector(selector_keys::SIGNATURE);
@@ -60,6 +73,24 @@ impl FwCfg {
         Ok(FwCfg(()))
     }
 
+    /// Find one or more files by their name.
+    /// 
+    /// Each tuple in `entries` must consisted of file name and a space for
+    /// `Option<FwCfgFile>`. If a file is found, the result will be stored by
+    /// replacing the value in `Option<FwCfgFile>` of the corresponding tuple,
+    /// otherwise it will retained the same value as before.
+    /// 
+    /// # Examples
+    /// ```
+    /// use qemu_fw_cfg::FwCfg;
+    /// 
+    /// let fw_cfg = unsafe { FwCfg::new() };
+    /// let mut files = [
+    ///     ("etc/igd-opregion", None),
+    ///     ("opt/another/file.txt", None),
+    /// ];
+    /// fw_cfg.find_files(&mut files);
+    /// ```
     pub fn find_files<'a, 'b>(&self, entries: &'a mut [(&'b str, Option<FwCfgFile<'b>>)]) {
         self.select(selector_keys::DIR);
 
@@ -89,36 +120,33 @@ impl FwCfg {
         }
     }
 
-    pub fn for_each<T: Fn(FwCfgFile) -> ()>(&self, f: T) {
-        self.select(selector_keys::DIR);
-
-        let count = {
-            let mut buf = [0u8; size_of::<u32>()];
-            self.read(&mut buf);
-            u32::from_be_bytes(buf)
-        };
-
-        let mut buf = [0u8; FW_CFG_FILE_SIZE];
-
-        for _ in 0..count {
-            self.read(&mut buf);
-            let file = FwCfgFile::from_bytes(&buf);
-            
-            f(file);
-        }
-    }
-
+    /// Find a single file by its name. Returns `None` if the file is missing.
+    /// 
+    /// # Examples
+    /// ```
+    /// use qemu_fw_cfg::FwCfg;
+    /// 
+    /// let fw_cfg = unsafe { FwCfg::new() };
+    /// let file = fw_cfg.find_file("etc/igd-opregion").unwrap();
+    /// ```
     pub fn find_file<'a>(&self, name: &'a str) -> Option<FwCfgFile<'a>> {
         let mut entries = [(name, None)];
         self.find_files(&mut entries);
         entries[0].1.take()
     }
 
+    /// Read a file and fill its data in `buffer`.
+    /// 
+    /// If the size of `buffer` is greater or equals to the size of the file,
+    /// then it will fill the entire data in `buffer[0..file.size()]`, otherwise
+    /// it will only fill up to `buffer.len()`.
     pub fn read_file_to_buffer<'a>(&self, file: &FwCfgFile<'a>, buffer: &mut [u8]) {
+        let len = file.size.min(buffer.len());
         self.select(file.key);
-        self.read(&mut buffer[..file.size]);
+        self.read(&mut buffer[..len]);
     }
 
+    /// Read a file and return the data in `Vec<u8>`.
     #[cfg(feature = "alloc")]
     pub fn read_file<'a>(&self, file: &FwCfgFile<'a>) -> Vec<u8> {
         let mut buf = vec![0u8; file.size];
@@ -142,6 +170,8 @@ impl FwCfg {
 
 const FW_CFG_FILE_SIZE: usize = 64;
 
+/// A struct that contains information of a fw_cfg file.
+#[derive(Debug, Clone, PartialEq)]
 pub struct FwCfgFile<'a> {
     size: usize,
     key: u16,
@@ -149,10 +179,12 @@ pub struct FwCfgFile<'a> {
 }
 
 impl<'a> FwCfgFile<'a> {
+    /// The size of this file.
     pub fn size(&self) -> usize {
         self.size
     }
 
+    /// The name of this file.
     pub fn name(&self) -> &'a str {
         self.name
     }

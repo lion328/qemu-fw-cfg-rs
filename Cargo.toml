@@ -1,7 +1,15 @@
 [package]
 name = "qemu-fw-cfg"
+description = "A Rust library for reading fw_cfg from QEMU"
 version = "0.1.0"
 edition = "2018"
+license = "MIT OR Apache-2.0"
+authors = ["Waritnan Sookbuntherng <lion328@hotmail.co.th>"]
+homepage = "https://github.com/lion328/qemu-fw-cfg-rs"
+repository = "https://github.com/lion328/qemu-fw-cfg-rs"
+keywords = ["qemu", "fw_cfg"]
+categories = ["no-std", "embedded", "hardware-support"]
+readme = "README.md"
 
 [features]
 default = ["alloc"]
