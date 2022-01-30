@@ -12,7 +12,7 @@
 //! // Verify that we are inside QEMU.
 //! if running_in_qemu() {
 //!     // Create a new `FwCfg` instance.
-//!     let fw_cfg = unsafe { FwCfg::new() };
+//!     let fw_cfg = unsafe { FwCfg::new().unwrap() };
 //!     // Retrieve information of a file.
 //!     let file = fw_cfg.find_file("etc/igd-opregion").unwrap();
 //!     // Read data from the file.
@@ -84,7 +84,7 @@ impl FwCfg {
     /// ```
     /// use qemu_fw_cfg::FwCfg;
     /// 
-    /// let fw_cfg = unsafe { FwCfg::new() };
+    /// let fw_cfg = unsafe { FwCfg::new().unwrap() };
     /// let mut files = [
     ///     ("etc/igd-opregion", None),
     ///     ("opt/another/file.txt", None),
@@ -126,7 +126,7 @@ impl FwCfg {
     /// ```
     /// use qemu_fw_cfg::FwCfg;
     /// 
-    /// let fw_cfg = unsafe { FwCfg::new() };
+    /// let fw_cfg = unsafe { FwCfg::new().unwrap() };
     /// let file = fw_cfg.find_file("etc/igd-opregion").unwrap();
     /// ```
     pub fn find_file<'a>(&self, name: &'a str) -> Option<FwCfgFile<'a>> {

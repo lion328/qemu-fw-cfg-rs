@@ -31,7 +31,7 @@ use qemu_fw_cfg::FwCfg;
 // Verify that we are inside QEMU.
 if running_in_qemu() {
     // Create a new `FwCfg` instance.
-    let fw_cfg = unsafe { FwCfg::new() };
+    let fw_cfg = unsafe { FwCfg::new().unwrap() };
     // Retrieve information of a file.
     let file = fw_cfg.find_file("etc/igd-opregion").unwrap();
     // Read data from the file.
