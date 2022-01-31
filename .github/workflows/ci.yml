@@ -19,7 +19,6 @@ jobs:
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
-          target: x86_64-unknown-none, i686-unknown-none
           override: true
           components: rustfmt, clippy
 
