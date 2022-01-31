@@ -4,7 +4,7 @@ TARGET=$(echo $1 | sed 's/.*target\/\([^\/]*\).*/\1/')
 ARCH=$(echo $TARGET | awk -F '-' '{ print $1 }')
 
 if [ "$ARCH" = "i686" ]; then
-    qemu-system-i386 \
+    qemu-system-x86_64 \
         -kernel $1 \
         -m 32M \
         -display none \
