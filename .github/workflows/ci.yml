@@ -1,9 +1,6 @@
-name: ci
+name: Continuous integration
 
 on: [push, pull_request]
-on: push
-
-name: Continuous integration
 
 jobs:
   ci:
