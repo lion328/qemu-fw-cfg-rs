@@ -1,8 +1,6 @@
 #![no_std]
 #![no_main]
 
-#![feature(global_asm)]
-#![feature(asm)]
 #![feature(default_alloc_error_handler)]
 
 use qemu_fw_cfg::FwCfg;

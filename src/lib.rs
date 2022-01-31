@@ -21,7 +21,6 @@
 //! ```
 
 #![no_std]
-#![feature(asm)]
 
 #[cfg(feature = "alloc")]
 #[macro_use]
@@ -63,8 +62,8 @@ impl FwCfg {
     /// before accessing I/O ports. Caller must verify this condition first.
     pub unsafe fn new() -> Result<FwCfg, FwCfgError> {
         let mut signature = [0u8; SIGNATURE_DATA.len()];
-        arch::write_selector(selector_keys::SIGNATURE);
-        arch::read_data(&mut signature);
+        Self::write_selector(selector_keys::SIGNATURE);
+        Self::read_data(&mut signature);
 
         if signature != SIGNATURE_DATA {
             return Err(FwCfgError::InvalidSignature);
@@ -157,13 +156,13 @@ impl FwCfg {
 
     fn select(&self, key: u16) {
         unsafe {
-            arch::write_selector(key);
+            Self::write_selector(key);
         }
     }
 
     fn read(&self, buffer: &mut [u8]) {
         unsafe {
-            arch::read_data(buffer);
+            Self::read_data(buffer);
         }
     }
 }
