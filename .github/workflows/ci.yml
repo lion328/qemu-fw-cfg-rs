@@ -23,10 +23,7 @@ jobs:
           components: rust-src, rustfmt, clippy
 
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v1
-        with:
-          image: tonistiigi/binfmt:latest
-          platforms: amd64
+        run: sudo apt-get install -y qemu-system-x86
 
       - name: Build as x86_64
         uses: actions-rs/cargo@v1
