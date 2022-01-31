@@ -31,12 +31,14 @@ jobs:
       - name: Build as x86_64
         uses: actions-rs/cargo@v1
         with:
-          command: build --target x86_64-unknown-none
+          command: build
+          args: --target x86_64-unknown-none
 
       - name: Build as i686
         uses: actions-rs/cargo@v1
         with:
-          command: build --target i686-unknown-none
+          command: build
+          args: --target i686-unknown-none
 
       - name: Test
         uses: actions-rs/cargo@v1
