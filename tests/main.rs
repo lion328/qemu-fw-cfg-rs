@@ -1,6 +1,5 @@
 #![no_std]
 #![no_main]
-
 #![feature(default_alloc_error_handler)]
 
 use qemu_fw_cfg::FwCfg;
@@ -11,9 +10,7 @@ const DATA_INPUT_TXT: &'static [u8] = include_bytes!("input.txt");
 
 #[no_mangle]
 fn main() {
-    let fw_cfg = unsafe {
-        FwCfg::new().unwrap()
-    };
+    let fw_cfg = unsafe { FwCfg::new().unwrap() };
 
     // File exist
     let file_input_txt = fw_cfg.find_file("opt/input.txt").unwrap();
@@ -22,7 +19,9 @@ fn main() {
     assert!(fw_cfg.find_file("opt/not_found.txt").is_none());
 
     // Long file name
-    fw_cfg.find_file("opt/567890123456789012345678901234567890123456789012345").unwrap();
+    fw_cfg
+        .find_file("opt/567890123456789012345678901234567890123456789012345")
+        .unwrap();
 
     // Multiple files
     let mut files = [
@@ -32,12 +31,15 @@ fn main() {
         ("opt/not_found.txt", Some(file_input_txt.clone())),
     ];
     fw_cfg.find_files(&mut files);
-    assert_eq!(files.map(|i| i.1), [
-        Some(file_input_txt.clone()),
-        None,
-        Some(file_input_txt.clone()),
-        Some(file_input_txt.clone()),
-    ]);
+    assert_eq!(
+        files.map(|i| i.1),
+        [
+            Some(file_input_txt.clone()),
+            None,
+            Some(file_input_txt.clone()),
+            Some(file_input_txt.clone()),
+        ]
+    );
 
     // Read file
     assert_eq!(DATA_INPUT_TXT, fw_cfg.read_file(&file_input_txt));

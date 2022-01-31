@@ -26,7 +26,7 @@ impl FwCfg {
     pub(crate) unsafe fn write_selector(key: u16) {
         out_u16(IO_PORT_SELECTOR, key);
     }
-    
+
     pub(crate) unsafe fn read_data(buffer: &mut [u8]) {
         for i in buffer {
             *i = in_u8(IO_PORT_DATA);

@@ -4,7 +4,13 @@ mod arch;
 
 pub use arch::*;
 
-use core::{alloc::{GlobalAlloc, Layout}, cell::UnsafeCell, panic::PanicInfo, ptr::null_mut, sync::atomic::{AtomicUsize, Ordering}};
+use core::{
+    alloc::{GlobalAlloc, Layout},
+    cell::UnsafeCell,
+    panic::PanicInfo,
+    ptr::null_mut,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 #[macro_export]
 macro_rules! println {
@@ -52,20 +58,24 @@ unsafe impl GlobalAlloc for LinearAllocator {
         let mask_valid_addr = !mask_offset;
         let mut next = 0;
 
-        if self.next.fetch_update(Ordering::SeqCst, Ordering::SeqCst, |old_next| {
-            next = if old_next & mask_offset == 0 {
-                old_next
-            } else {
-                (old_next & mask_valid_addr) + align
-            };
+        if self
+            .next
+            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |old_next| {
+                next = if old_next & mask_offset == 0 {
+                    old_next
+                } else {
+                    (old_next & mask_valid_addr) + align
+                };
 
-            let end = next + size;
-            if end >= HEAP_SIZE {
-                return None;
-            }
+                let end = next + size;
+                if end >= HEAP_SIZE {
+                    return None;
+                }
 
-            Some(end)
-        }).is_err() {
+                Some(end)
+            })
+            .is_err()
+        {
             return null_mut();
         }
 

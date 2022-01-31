@@ -1,14 +1,14 @@
 //! A Rust library for reading fw_cfg from QEMU.
-//! 
+//!
 //! # Supported architectures
-//! 
+//!
 //! As of today, this crate only supported x86 and x86_64. However, it is possible
 //! to add support for other platforms, such as ARM.
-//! 
+//!
 //! # Examples
 //! ```
 //! use qemu_fw_cfg::FwCfg;
-//! 
+//!
 //! // Verify that we are inside QEMU.
 //! if running_in_qemu() {
 //!     // Create a new `FwCfg` instance.
@@ -56,7 +56,7 @@ pub struct FwCfg(());
 
 impl FwCfg {
     /// Build `FwCfg` from the builder.
-    /// 
+    ///
     /// # Safety
     /// This is unsafe since there is no verification that this running inside QEMU
     /// before accessing I/O ports. Caller must verify this condition first.
@@ -73,16 +73,16 @@ impl FwCfg {
     }
 
     /// Find one or more files by their name.
-    /// 
+    ///
     /// Each tuple in `entries` must consisted of file name and a space for
     /// `Option<FwCfgFile>`. If a file is found, the result will be stored by
     /// replacing the value in `Option<FwCfgFile>` of the corresponding tuple,
     /// otherwise it will retained the same value as before.
-    /// 
+    ///
     /// # Examples
     /// ```
     /// use qemu_fw_cfg::FwCfg;
-    /// 
+    ///
     /// let fw_cfg = unsafe { FwCfg::new().unwrap() };
     /// let mut files = [
     ///     ("etc/igd-opregion", None),
@@ -120,11 +120,11 @@ impl FwCfg {
     }
 
     /// Find a single file by its name. Returns `None` if the file is missing.
-    /// 
+    ///
     /// # Examples
     /// ```
     /// use qemu_fw_cfg::FwCfg;
-    /// 
+    ///
     /// let fw_cfg = unsafe { FwCfg::new().unwrap() };
     /// let file = fw_cfg.find_file("etc/igd-opregion").unwrap();
     /// ```
@@ -135,7 +135,7 @@ impl FwCfg {
     }
 
     /// Read a file and fill its data in `buffer`.
-    /// 
+    ///
     /// If the size of `buffer` is greater or equals to the size of the file,
     /// then it will fill the entire data in `buffer[0..file.size()]`, otherwise
     /// it will only fill up to `buffer.len()`.
@@ -174,7 +174,7 @@ const FW_CFG_FILE_SIZE: usize = 64;
 pub struct FwCfgFile<'a> {
     size: usize,
     key: u16,
-    name: &'a str, 
+    name: &'a str,
 }
 
 impl<'a> FwCfgFile<'a> {
@@ -190,7 +190,8 @@ impl<'a> FwCfgFile<'a> {
 
     fn from_bytes(bytes: &'a [u8; FW_CFG_FILE_SIZE]) -> Self {
         let name_bytes = &bytes[8..];
-        let name_len = name_bytes.iter()
+        let name_len = name_bytes
+            .iter()
             .position(|b| *b == 0)
             .unwrap_or_else(|| name_bytes.len());
 
