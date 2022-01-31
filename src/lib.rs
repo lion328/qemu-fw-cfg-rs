@@ -40,7 +40,7 @@ mod selector_keys {
     pub const DIR: u16 = 0x0019;
 }
 
-const SIGNATURE_DATA: &'static [u8] = b"QEMU";
+const SIGNATURE_DATA: &[u8] = b"QEMU";
 
 /// An enum type for [`FwCfg`] errors.
 #[derive(Debug)]
@@ -193,7 +193,7 @@ impl<'a> FwCfgFile<'a> {
         let name_len = name_bytes
             .iter()
             .position(|b| *b == 0)
-            .unwrap_or_else(|| name_bytes.len());
+            .unwrap_or(name_bytes.len());
 
         Self {
             size: u32::from_be_bytes(bytes[..=3].try_into().unwrap()) as usize,
