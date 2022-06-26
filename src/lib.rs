@@ -76,6 +76,22 @@ impl FwCfg {
         Ok(FwCfg(()))
     }
 
+    /// Return an iterator of all files in the fw_cfg directory
+    pub fn iter_files(&mut self) -> impl Iterator<Item = FwCfgFile> + '_ {
+        self.select(selector_keys::DIR);
+
+        let count = {
+            let mut buf = [0u8; size_of::<u32>()];
+            self.read(&mut buf);
+            u32::from_be_bytes(buf)
+        };
+        (0..count).map(move |_| {
+            let mut file = FwCfgFile::default();
+            self.read(file.as_mut_bytes());
+            file
+        })
+    }
+
     /// Find one or more files by their name.
     ///
     /// Each tuple in `entries` must consisted of file name and a space for
@@ -95,18 +111,7 @@ impl FwCfg {
     /// fw_cfg.find_files(&mut files);
     /// ```
     pub fn find_files(&mut self, entries: &mut [(&str, Option<FwCfgFile>)]) {
-        self.select(selector_keys::DIR);
-
-        let count = {
-            let mut buf = [0u8; size_of::<u32>()];
-            self.read(&mut buf);
-            u32::from_be_bytes(buf)
-        };
-
-        let mut file = FwCfgFile::default();
-
-        for _ in 0..count {
-            self.read(file.as_mut_bytes());
+        for file in self.iter_files() {
             let mut changed = false;
 
             for (name, ret) in entries.iter_mut() {
