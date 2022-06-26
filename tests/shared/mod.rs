@@ -2,6 +2,10 @@
 #[path = "i686/mod.rs"]
 mod arch;
 
+#[cfg(target_arch = "riscv32")]
+#[path = "riscv32/mod.rs"]
+mod arch;
+
 pub use arch::*;
 
 use core::{
