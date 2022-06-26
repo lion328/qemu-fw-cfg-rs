@@ -10,6 +10,10 @@ jobs:
         rust:
           - nightly
 
+          # Minimum supported version.
+          # Keep this in sync with Cargo.toml and README.md
+          - 1.59.0
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -23,32 +27,32 @@ jobs:
           components: rust-src, rustfmt, clippy
 
       - name: Setup QEMU
+        if: ${{ matrix.rust == 'nightly' }}
         run: sudo apt-get update && sudo apt-get install -y qemu-system-x86
 
-      - name: Build as x86_64
+      - name: Build (without testing) as x86_64
+        if: ${{ matrix.rust == 'nightly' }} # Tier 2 (precompiled libcore in rustup) since 1.62
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --target x86_64-unknown-none
 
-      - name: Build as i686
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --target i686-unknown-none.json
-
-      - name: Test
+      - name: Build and test as i686
+        if: ${{ matrix.rust == 'nightly' }}
         uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --target i686-unknown-none.json
 
       - name: Rustfmt
+        if: ${{ matrix.rust == 'nightly' }}
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
 
       - name: Clippy
+        if: ${{ matrix.rust == 'nightly' }}
         uses: actions-rs/cargo@v1
         with:
           command: clippy

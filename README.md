@@ -41,7 +41,11 @@ if running_in_qemu() {
 
 ## Rust support
 
-Currently, `qemu-fw-cfg` required nightly compiler to build.
+<!-- Keep this in sync with Cargo.toml and .github/workflows/ci.yml -->
+The minimum supported Rust version for `qemu-fw-cfg` is 1.59.0.
+
+However, testing for x86 currently requires Rust Nightly as it uses
+[Cargo’s `build-std`](https://doc.rust-lang.org/cargo/reference/unstable.html#build-std).
 
 ## License
 

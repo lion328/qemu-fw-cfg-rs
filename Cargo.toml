@@ -11,6 +11,9 @@ keywords = ["qemu", "fw_cfg"]
 categories = ["no-std", "embedded", "hardware-support"]
 readme = "README.md"
 
+# Keep this in sync with README.md and .github/workflows/ci.yml
+rust-version = "1.59"
+
 [features]
 default = ["alloc"]
 alloc = []
