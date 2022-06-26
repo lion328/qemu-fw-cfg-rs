@@ -25,10 +25,14 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
           components: rust-src, rustfmt, clippy
+          target: riscv32imac-unknown-none-elf
 
-      - name: Setup QEMU
+      - name: Setup QEMU for RISC-V
+        run: sudo apt-get update && sudo apt-get install -y qemu-system-misc
+
+      - name: Setup QEMU for i686
         if: ${{ matrix.rust == 'nightly' }}
-        run: sudo apt-get update && sudo apt-get install -y qemu-system-x86
+        run: sudo apt-get install -y qemu-system-x86
 
       - name: Build (without testing) as x86_64
         if: ${{ matrix.rust == 'nightly' }} # Tier 2 (precompiled libcore in rustup) since 1.62
@@ -43,6 +47,12 @@ jobs:
         with:
           command: test
           args: --target i686-unknown-none.json
+
+      - name: Build and test as RISC-V
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target riscv32imac-unknown-none-elf --no-default-features
 
       - name: Rustfmt
         if: ${{ matrix.rust == 'nightly' }}
