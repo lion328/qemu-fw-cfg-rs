@@ -52,10 +52,16 @@ pub enum FwCfgError {
 
 /// A struct for accessing QEMU fw_cfg.
 #[derive(Debug)]
-pub struct FwCfg(());
+pub struct FwCfg(Mode);
+
+#[derive(Debug)]
+enum Mode {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    IOPort,
+}
 
 impl FwCfg {
-    /// Build `FwCfg` from the builder.
+    /// Build `FwCfg` for the x86/x86-64 I/O port.
     ///
     /// # Safety
     ///
@@ -64,16 +70,23 @@ impl FwCfg {
     ///
     /// Only one `FwCfg` value may exist at the same time
     /// since it accesses a global shared stateful resource.
-    pub unsafe fn new() -> Result<FwCfg, FwCfgError> {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    pub unsafe fn new_for_x86() -> Result<FwCfg, FwCfgError> {
+        Self::new_for_mode(Mode::IOPort)
+    }
+
+    unsafe fn new_for_mode(mode: Mode) -> Result<FwCfg, FwCfgError> {
+        let mut fw_cfg = FwCfg(mode);
+
         let mut signature = [0u8; SIGNATURE_DATA.len()];
-        Self::write_selector(selector_keys::SIGNATURE);
-        Self::read_data(&mut signature);
+        fw_cfg.select(selector_keys::SIGNATURE);
+        fw_cfg.read(&mut signature);
 
         if signature != SIGNATURE_DATA {
             return Err(FwCfgError::InvalidSignature);
         }
 
-        Ok(FwCfg(()))
+        Ok(fw_cfg)
     }
 
     /// Return an iterator of all files in the fw_cfg directory
@@ -164,13 +177,19 @@ impl FwCfg {
 
     fn select(&mut self, key: u16) {
         unsafe {
-            Self::write_selector(key);
+            match self.0 {
+                #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+                Mode::IOPort => arch::write_selector(key),
+            }
         }
     }
 
     fn read(&mut self, buffer: &mut [u8]) {
         unsafe {
-            Self::read_data(buffer);
+            match self.0 {
+                #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+                Mode::IOPort => arch::read_data(buffer),
+            }
         }
     }
 }
