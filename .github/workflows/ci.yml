@@ -23,7 +23,7 @@ jobs:
           components: rust-src, rustfmt, clippy
 
       - name: Setup QEMU
-        run: sudo apt-get install -y qemu-system-x86
+        run: sudo apt-get update && sudo apt-get install -y qemu-system-x86
 
       - name: Build as x86_64
         uses: actions-rs/cargo@v1
