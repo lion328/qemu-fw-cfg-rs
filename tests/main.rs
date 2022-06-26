@@ -10,7 +10,7 @@ const DATA_INPUT_TXT: &'static [u8] = include_bytes!("input.txt");
 
 #[no_mangle]
 fn main() {
-    let mut fw_cfg = unsafe { FwCfg::new().unwrap() };
+    let mut fw_cfg = unsafe { FwCfg::new_for_x86().unwrap() };
 
     // File exist
     let file_input_txt = fw_cfg.find_file("opt/input.txt").unwrap();

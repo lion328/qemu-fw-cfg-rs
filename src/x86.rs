@@ -1,4 +1,3 @@
-use crate::FwCfg;
 use core::arch::asm;
 
 const IO_PORT_SELECTOR: u16 = 0x510;
@@ -22,14 +21,12 @@ unsafe fn out_u16(address: u16, data: u16) {
     );
 }
 
-impl FwCfg {
-    pub(crate) unsafe fn write_selector(key: u16) {
-        out_u16(IO_PORT_SELECTOR, key);
-    }
+pub(crate) unsafe fn write_selector(key: u16) {
+    out_u16(IO_PORT_SELECTOR, key);
+}
 
-    pub(crate) unsafe fn read_data(buffer: &mut [u8]) {
-        for i in buffer {
-            *i = in_u8(IO_PORT_DATA);
-        }
+pub(crate) unsafe fn read_data(buffer: &mut [u8]) {
+    for i in buffer {
+        *i = in_u8(IO_PORT_DATA);
     }
 }
