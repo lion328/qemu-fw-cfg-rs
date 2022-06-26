@@ -1,7 +1,7 @@
 [package]
 name = "qemu-fw-cfg"
 description = "A Rust library for reading fw_cfg from QEMU"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2018"
 license = "MIT OR Apache-2.0"
 authors = ["Waritnan Sookbuntherng <lion328@hotmail.co.th>"]

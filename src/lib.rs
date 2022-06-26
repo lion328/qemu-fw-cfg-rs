@@ -58,8 +58,12 @@ impl FwCfg {
     /// Build `FwCfg` from the builder.
     ///
     /// # Safety
-    /// This is unsafe since there is no verification that this running inside QEMU
-    /// before accessing I/O ports. Caller must verify this condition first.
+    ///
+    /// This may only be called when running inside QEMU
+    /// since I/O ports are accessed without additional checks.
+    ///
+    /// Only one `FwCfg` value may exist at the same time
+    /// since it accesses a global shared stateful resource.
     pub unsafe fn new() -> Result<FwCfg, FwCfgError> {
         let mut signature = [0u8; SIGNATURE_DATA.len()];
         Self::write_selector(selector_keys::SIGNATURE);
@@ -90,7 +94,7 @@ impl FwCfg {
     /// ];
     /// fw_cfg.find_files(&mut files);
     /// ```
-    pub fn find_files<'a, 'b>(&self, entries: &'a mut [(&'b str, Option<FwCfgFile<'b>>)]) {
+    pub fn find_files<'a, 'b>(&mut self, entries: &'a mut [(&'b str, Option<FwCfgFile<'b>>)]) {
         self.select(selector_keys::DIR);
 
         let count = {
@@ -128,7 +132,7 @@ impl FwCfg {
     /// let fw_cfg = unsafe { FwCfg::new().unwrap() };
     /// let file = fw_cfg.find_file("etc/igd-opregion").unwrap();
     /// ```
-    pub fn find_file<'a>(&self, name: &'a str) -> Option<FwCfgFile<'a>> {
+    pub fn find_file<'a>(&mut self, name: &'a str) -> Option<FwCfgFile<'a>> {
         let mut entries = [(name, None)];
         self.find_files(&mut entries);
         entries[0].1.take()
@@ -139,7 +143,7 @@ impl FwCfg {
     /// If the size of `buffer` is greater or equals to the size of the file,
     /// then it will fill the entire data in `buffer[0..file.size()]`, otherwise
     /// it will only fill up to `buffer.len()`.
-    pub fn read_file_to_buffer<'a>(&self, file: &FwCfgFile<'a>, buffer: &mut [u8]) {
+    pub fn read_file_to_buffer<'a>(&mut self, file: &FwCfgFile<'a>, buffer: &mut [u8]) {
         let len = file.size.min(buffer.len());
         self.select(file.key);
         self.read(&mut buffer[..len]);
@@ -147,20 +151,20 @@ impl FwCfg {
 
     /// Read a file and return the data in `Vec<u8>`.
     #[cfg(feature = "alloc")]
-    pub fn read_file<'a>(&self, file: &FwCfgFile<'a>) -> Vec<u8> {
+    pub fn read_file<'a>(&mut self, file: &FwCfgFile<'a>) -> Vec<u8> {
         let mut buf = vec![0u8; file.size];
         self.select(file.key);
         self.read(&mut buf);
         buf
     }
 
-    fn select(&self, key: u16) {
+    fn select(&mut self, key: u16) {
         unsafe {
             Self::write_selector(key);
         }
     }
 
-    fn read(&self, buffer: &mut [u8]) {
+    fn read(&mut self, buffer: &mut [u8]) {
         unsafe {
             Self::read_data(buffer);
         }
