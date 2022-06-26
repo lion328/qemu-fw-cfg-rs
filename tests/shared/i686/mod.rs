@@ -1,4 +1,5 @@
 use core::arch::{asm, global_asm};
+use qemu_fw_cfg::FwCfg;
 
 global_asm!(include_str!("boot.asm"));
 
@@ -30,4 +31,8 @@ impl core::fmt::Write for Writer {
         }
         Ok(())
     }
+}
+
+pub unsafe fn fw_cfg() -> FwCfg {
+    FwCfg::new_for_x86().unwrap()
 }

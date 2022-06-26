@@ -24,3 +24,7 @@ test = false
 [[test]]
 name = "main"
 harness = false
+
+[target.'cfg(target_arch = "riscv32")'.dev-dependencies]
+riscv-rt = "0.10.0"
+fdt = "0.1.3"
