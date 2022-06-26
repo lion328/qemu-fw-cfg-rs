@@ -55,5 +55,9 @@ fn main() {
     fw_cfg.read_file_to_buffer(&file_input_txt, &mut buffer);
     assert_eq!(DATA_INPUT_TXT[..buffer.len()], buffer);
 
+    // This file is not writeable
+    let result = fw_cfg.write_to_file(&file_input_txt, b" ");
+    assert_eq!(result, Err(qemu_fw_cfg::FwCfgWriteError::DmaFailed));
+
     writeln!(shared::Writer, "✅ Test sucessful").unwrap();
 }
