@@ -58,6 +58,7 @@ pub struct FwCfg(Mode);
 enum Mode {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     IOPort,
+    MemoryMapped(MemoryMappedDevice),
 }
 
 impl FwCfg {
@@ -73,6 +74,18 @@ impl FwCfg {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     pub unsafe fn new_for_x86() -> Result<FwCfg, FwCfgError> {
         Self::new_for_mode(Mode::IOPort)
+    }
+
+    /// Build `FwCfg` for the device memory-mapped at the give base pointer.
+    ///
+    /// # Safety
+    ///
+    /// The pointer must point to a valid fw_cfg device.
+    ///
+    /// Only one `FwCfg` value may exist at the same time for that pointer.
+    pub unsafe fn new_memory_mapped(base_ptr: *mut ()) -> Result<FwCfg, FwCfgError> {
+        let device = MemoryMappedDevice::new(base_ptr);
+        Self::new_for_mode(Mode::MemoryMapped(device))
     }
 
     unsafe fn new_for_mode(mode: Mode) -> Result<FwCfg, FwCfgError> {
@@ -176,20 +189,18 @@ impl FwCfg {
     }
 
     fn select(&mut self, key: u16) {
-        unsafe {
-            match self.0 {
-                #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-                Mode::IOPort => arch::write_selector(key),
-            }
+        match &mut self.0 {
+            #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+            Mode::IOPort => unsafe { arch::write_selector(key) },
+            Mode::MemoryMapped(device) => device.write_selector(key),
         }
     }
 
     fn read(&mut self, buffer: &mut [u8]) {
-        unsafe {
-            match self.0 {
-                #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-                Mode::IOPort => arch::read_data(buffer),
-            }
+        match &mut self.0 {
+            #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+            Mode::IOPort => unsafe { arch::read_data(buffer) },
+            Mode::MemoryMapped(device) => device.read_data(buffer),
         }
     }
 }
@@ -242,5 +253,41 @@ impl FwCfgFile {
         let ptr: *mut Self = self;
         let ptr: *mut [u8; size_of::<Self>()] = ptr.cast();
         unsafe { &mut *ptr }
+    }
+}
+
+#[derive(Debug)]
+struct MemoryMappedDevice {
+    base_ptr: *mut (),
+}
+
+impl MemoryMappedDevice {
+    unsafe fn new(base_ptr: *mut ()) -> Self {
+        Self { base_ptr }
+    }
+
+    fn register<T>(&self, offset_in_bytes: usize) -> *mut T {
+        let offset = offset_in_bytes / size_of::<T>();
+        unsafe { self.base_ptr.cast::<T>().add(offset) }
+    }
+
+    fn write_selector(&mut self, key: u16) {
+        // https://gitlab.com/qemu-project/qemu/-/blob/v7.0.0/docs/specs/fw_cfg.txt#L87
+        let selector_offset = 8;
+        let selector_ptr = self.register::<u16>(selector_offset);
+        unsafe { selector_ptr.write_volatile(key.to_be()) }
+    }
+
+    fn read_data(&mut self, data: &mut [u8]) {
+        // https://gitlab.com/qemu-project/qemu/-/blob/v7.0.0/docs/specs/fw_cfg.txt#L88
+        let data_offset = 0;
+        let data_ptr = self.register::<usize>(data_offset);
+        for chunk in data.chunks_mut(size_of::<usize>()) {
+            let word = unsafe { data_ptr.read_volatile() };
+            // https://gitlab.com/qemu-project/qemu/-/blob/v7.0.0/docs/specs/fw_cfg.txt#L53
+            // "string-preserving" means native-endian
+            let bytes = word.to_ne_bytes();
+            chunk.copy_from_slice(&bytes[..chunk.len()]);
+        }
     }
 }

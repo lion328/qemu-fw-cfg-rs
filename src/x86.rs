@@ -1,5 +1,6 @@
 use core::arch::asm;
 
+// https://gitlab.com/qemu-project/qemu/-/blob/v7.0.0/docs/specs/fw_cfg.txt#L79
 const IO_PORT_SELECTOR: u16 = 0x510;
 const IO_PORT_DATA: u16 = 0x511;
 
