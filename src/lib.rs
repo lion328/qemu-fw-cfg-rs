@@ -29,6 +29,7 @@ extern crate alloc;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
+use core::fmt;
 use core::mem::size_of;
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
@@ -208,7 +209,7 @@ impl FwCfg {
 const _: () = assert!(size_of::<FwCfgFile>() == 64);
 
 /// A struct that contains information of a fw_cfg file.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 // NOTE: The memory layout of this struct must match this exactly:
 // https://gitlab.com/qemu-project/qemu/-/blob/v7.0.0/docs/specs/fw_cfg.txt#L132-137
 #[repr(C)]
@@ -253,6 +254,16 @@ impl FwCfgFile {
         let ptr: *mut Self = self;
         let ptr: *mut [u8; size_of::<Self>()] = ptr.cast();
         unsafe { &mut *ptr }
+    }
+}
+
+impl fmt::Debug for FwCfgFile {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("FwCfgFile")
+            .field("key", &self.key())
+            .field("size", &self.size())
+            .field("name", &self.name())
+            .finish()
     }
 }
 
