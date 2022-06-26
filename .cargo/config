@@ -6,4 +6,11 @@ target = "i686-unknown-none.json"
 
 [target.i686-unknown-none]
 rustflags = ["-C", "link-args=-T tests/shared/i686/link.ld"]
-runner = "sh tests/runner.sh"
+runner = "tests/runner.sh"
+
+[target.riscv32imac-unknown-none-elf]
+rustflags = [
+  "-C", "link-arg=-Ttests/shared/riscv32/memory.x",
+  "-C", "link-arg=-Tlink.x",
+]
+runner = "tests/runner.sh"
