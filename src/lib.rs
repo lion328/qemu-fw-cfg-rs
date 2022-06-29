@@ -170,7 +170,7 @@ impl FwCfg {
 const FW_CFG_FILE_SIZE: usize = 64;
 
 /// A struct that contains information of a fw_cfg file.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FwCfgFile<'a> {
     size: usize,
     key: u16,

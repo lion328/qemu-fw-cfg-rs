@@ -1,6 +1,6 @@
 #![no_std]
 #![no_main]
-#![feature(default_alloc_error_handler)]
+#![cfg_attr(feature = "alloc", feature(default_alloc_error_handler))]
 
 use qemu_fw_cfg::FwCfg;
 
@@ -42,6 +42,7 @@ fn main() {
     );
 
     // Read file
+    #[cfg(feature = "alloc")]
     assert_eq!(DATA_INPUT_TXT, fw_cfg.read_file(&file_input_txt));
 
     // Read file with buffer
