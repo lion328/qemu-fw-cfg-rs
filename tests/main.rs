@@ -2,15 +2,15 @@
 #![no_main]
 #![cfg_attr(feature = "alloc", feature(default_alloc_error_handler))]
 
-use qemu_fw_cfg::FwCfg;
+use core::fmt::Write;
 
 mod shared;
 
 const DATA_INPUT_TXT: &'static [u8] = include_bytes!("input.txt");
 
-#[no_mangle]
+#[cfg_attr(not(target_arch = "riscv32"), no_mangle)]
 fn main() {
-    let mut fw_cfg = unsafe { FwCfg::new().unwrap() };
+    let mut fw_cfg = unsafe { shared::fw_cfg() };
 
     // File exist
     let file_input_txt = fw_cfg.find_file("opt/input.txt").unwrap();
@@ -54,4 +54,10 @@ fn main() {
     let mut buffer = [0u8; DATA_INPUT_TXT.len() / 2];
     fw_cfg.read_file_to_buffer(&file_input_txt, &mut buffer);
     assert_eq!(DATA_INPUT_TXT[..buffer.len()], buffer);
+
+    // This file is not writeable
+    let result = fw_cfg.write_to_file(&file_input_txt, b" ");
+    assert_eq!(result, Err(qemu_fw_cfg::FwCfgWriteError::DmaFailed));
+
+    writeln!(shared::Writer, "✅ Test sucessful").unwrap();
 }
