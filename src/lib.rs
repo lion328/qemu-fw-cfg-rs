@@ -29,7 +29,7 @@ extern crate alloc;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
-use core::{convert::TryInto, mem::size_of, str::from_utf8};
+use core::mem::size_of;
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[path = "x86.rs"]
@@ -58,8 +58,12 @@ impl FwCfg {
     /// Build `FwCfg` from the builder.
     ///
     /// # Safety
-    /// This is unsafe since there is no verification that this running inside QEMU
-    /// before accessing I/O ports. Caller must verify this condition first.
+    ///
+    /// This may only be called when running inside QEMU
+    /// since I/O ports are accessed without additional checks.
+    ///
+    /// Only one `FwCfg` value may exist at the same time
+    /// since it accesses a global shared stateful resource.
     pub unsafe fn new() -> Result<FwCfg, FwCfgError> {
         let mut signature = [0u8; SIGNATURE_DATA.len()];
         Self::write_selector(selector_keys::SIGNATURE);
@@ -70,6 +74,22 @@ impl FwCfg {
         }
 
         Ok(FwCfg(()))
+    }
+
+    /// Return an iterator of all files in the fw_cfg directory
+    pub fn iter_files(&mut self) -> impl Iterator<Item = FwCfgFile> + '_ {
+        self.select(selector_keys::DIR);
+
+        let count = {
+            let mut buf = [0u8; size_of::<u32>()];
+            self.read(&mut buf);
+            u32::from_be_bytes(buf)
+        };
+        (0..count).map(move |_| {
+            let mut file = FwCfgFile::default();
+            self.read(file.as_mut_bytes());
+            file
+        })
     }
 
     /// Find one or more files by their name.
@@ -90,25 +110,13 @@ impl FwCfg {
     /// ];
     /// fw_cfg.find_files(&mut files);
     /// ```
-    pub fn find_files<'a, 'b>(&self, entries: &'a mut [(&'b str, Option<FwCfgFile<'b>>)]) {
-        self.select(selector_keys::DIR);
-
-        let count = {
-            let mut buf = [0u8; size_of::<u32>()];
-            self.read(&mut buf);
-            u32::from_be_bytes(buf)
-        };
-
-        let mut buf = [0u8; FW_CFG_FILE_SIZE];
-
-        for _ in 0..count {
-            self.read(&mut buf);
-            let file = FwCfgFile::from_bytes(&buf);
+    pub fn find_files(&mut self, entries: &mut [(&str, Option<FwCfgFile>)]) {
+        for file in self.iter_files() {
             let mut changed = false;
 
             for (name, ret) in entries.iter_mut() {
                 if file.name() == *name {
-                    ret.replace(file.with_name(*name));
+                    *ret = Some(file.clone());
                     changed = true;
                 }
             }
@@ -128,7 +136,7 @@ impl FwCfg {
     /// let fw_cfg = unsafe { FwCfg::new().unwrap() };
     /// let file = fw_cfg.find_file("etc/igd-opregion").unwrap();
     /// ```
-    pub fn find_file<'a>(&self, name: &'a str) -> Option<FwCfgFile<'a>> {
+    pub fn find_file(&mut self, name: &str) -> Option<FwCfgFile> {
         let mut entries = [(name, None)];
         self.find_files(&mut entries);
         entries[0].1.take()
@@ -139,74 +147,81 @@ impl FwCfg {
     /// If the size of `buffer` is greater or equals to the size of the file,
     /// then it will fill the entire data in `buffer[0..file.size()]`, otherwise
     /// it will only fill up to `buffer.len()`.
-    pub fn read_file_to_buffer<'a>(&self, file: &FwCfgFile<'a>, buffer: &mut [u8]) {
-        let len = file.size.min(buffer.len());
-        self.select(file.key);
+    pub fn read_file_to_buffer(&mut self, file: &FwCfgFile, buffer: &mut [u8]) {
+        let len = file.size().min(buffer.len());
+        self.select(file.key());
         self.read(&mut buffer[..len]);
     }
 
     /// Read a file and return the data in `Vec<u8>`.
     #[cfg(feature = "alloc")]
-    pub fn read_file<'a>(&self, file: &FwCfgFile<'a>) -> Vec<u8> {
-        let mut buf = vec![0u8; file.size];
-        self.select(file.key);
+    pub fn read_file(&mut self, file: &FwCfgFile) -> Vec<u8> {
+        let mut buf = vec![0u8; file.size()];
+        self.select(file.key());
         self.read(&mut buf);
         buf
     }
 
-    fn select(&self, key: u16) {
+    fn select(&mut self, key: u16) {
         unsafe {
             Self::write_selector(key);
         }
     }
 
-    fn read(&self, buffer: &mut [u8]) {
+    fn read(&mut self, buffer: &mut [u8]) {
         unsafe {
             Self::read_data(buffer);
         }
     }
 }
 
-const FW_CFG_FILE_SIZE: usize = 64;
+const _: () = assert!(size_of::<FwCfgFile>() == 64);
 
 /// A struct that contains information of a fw_cfg file.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FwCfgFile<'a> {
-    size: usize,
-    key: u16,
-    name: &'a str,
+// NOTE: The memory layout of this struct must match this exactly:
+// https://gitlab.com/qemu-project/qemu/-/blob/v7.0.0/docs/specs/fw_cfg.txt#L132-137
+#[repr(C)]
+pub struct FwCfgFile {
+    size_be: u32,
+    key_be: u16,
+    _reserved: u16,
+    name_bytes: [u8; 56],
 }
 
-impl<'a> FwCfgFile<'a> {
+// Can’t be derived because of:
+// https://github.com/rust-lang/rust/issues/88744
+// https://github.com/rust-lang/rust/issues/61415
+impl Default for FwCfgFile {
+    fn default() -> Self {
+        Self {
+            size_be: 0,
+            key_be: 0,
+            _reserved: 0,
+            name_bytes: [0; 56],
+        }
+    }
+}
+
+impl FwCfgFile {
     /// The size of this file.
     pub fn size(&self) -> usize {
-        self.size
+        u32::from_be(self.size_be) as usize
+    }
+
+    fn key(&self) -> u16 {
+        u16::from_be(self.key_be)
     }
 
     /// The name of this file.
-    pub fn name(&self) -> &'a str {
-        self.name
+    pub fn name(&self) -> &str {
+        let bytes = self.name_bytes.split(|&b| b == b'\x00').next().unwrap();
+        core::str::from_utf8(bytes).unwrap()
     }
 
-    fn from_bytes(bytes: &'a [u8; FW_CFG_FILE_SIZE]) -> Self {
-        let name_bytes = &bytes[8..];
-        let name_len = name_bytes
-            .iter()
-            .position(|b| *b == 0)
-            .unwrap_or(name_bytes.len());
-
-        Self {
-            size: u32::from_be_bytes(bytes[..=3].try_into().unwrap()) as usize,
-            key: u16::from_be_bytes(bytes[4..=5].try_into().unwrap()),
-            name: from_utf8(&name_bytes[..name_len]).unwrap(),
-        }
-    }
-
-    fn with_name<'b: 'a>(&self, name: &'b str) -> FwCfgFile<'b> {
-        FwCfgFile {
-            size: self.size,
-            key: self.key,
-            name,
-        }
+    fn as_mut_bytes(&mut self) -> &mut [u8; size_of::<Self>()] {
+        let ptr: *mut Self = self;
+        let ptr: *mut [u8; size_of::<Self>()] = ptr.cast();
+        unsafe { &mut *ptr }
     }
 }
