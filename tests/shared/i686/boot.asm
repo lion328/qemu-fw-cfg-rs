@@ -21,5 +21,5 @@ _start:
 .bss
 
 .align 4096
-.skip 16 * 1024
+.skip 128 * 1024
 stack_top:

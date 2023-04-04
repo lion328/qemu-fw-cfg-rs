@@ -5,7 +5,9 @@
 [![License-Apache](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE-APACHE)
 [![docs.rs](https://img.shields.io/docsrs/qemu-fw-cfg)](https://docs.rs/qemu-fw-cfg)
 
-A Rust library for reading fw_cfg from QEMU.
+A Rust library for reading [fw_cfg] from QEMU.
+
+[fw_cfg]: https://www.qemu.org/docs/master/specs/fw_cfg.html
 
 ## Usage
 
